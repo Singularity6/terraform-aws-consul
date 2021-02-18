@@ -237,7 +237,7 @@ function generate_consul_config {
   local -r enable_grpc="${22}"
   local -r config_path="$config_dir/$CONSUL_CONFIG_FILE"
 
-  shift 20
+  shift 22
   local -r recursors=("$@")
 
   local instance_id=""
