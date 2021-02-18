@@ -321,7 +321,7 @@ EOF
     connect_configuration=$(cat <<EOF
 "connect": {
   "enabled": true
-}
+},
 EOF
 )
   fi
@@ -332,7 +332,7 @@ EOF
     grpc_configuration=$(cat <<EOF
 "ports": {
   "grpc": 8502
-}
+},
 EOF
 )
   fi
@@ -353,8 +353,8 @@ EOF
   $gossip_encryption_configuration
   $rpc_encryption_configuration
   $autopilot_configuration
-  $connect_configuration,
-  $grpc_configuration,
+  $connect_configuration
+  $grpc_configuration
   "ui": $ui
 }
 EOF
