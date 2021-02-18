@@ -50,6 +50,8 @@ function print_usage {
   echo -e "  --cert-file-path\tPath to the certificate file used to verify incoming connections. Optional. Must be specified with --enable-rpc-encryption and --key-file-path."
   echo -e "  --key-file-path\tPath to the certificate key used to verify incoming connections. Optional. Must be specified with --enable-rpc-encryption and --cert-file-path."
   echo -e "  --verify-server-hostname\tWhen passed in, enable server hostname verification as part of RPC encryption. Each server in Consul should get their own certificate that contains SERVERNAME.DATACENTERNAME.consul in the hostname or SAN. This prevents an authenticated agent from being converted into a server that streams all data, bypassing ACLs."
+  echo -e "  --enable-connect\tWhen passed in, turns on Consul Connect."
+  echo -e "  --enable-grpc\tWhen passed in, turns on gRPC mode, which as of right now is only used to expose XDS to Envoy Proxies. This is hard set to the default port of 8502 by convention."
   echo -e "  --environment\t\tA single environment variable in the key/value pair form 'KEY=\"val\"' to pass to Consul as environment variable when starting it up. Repeat this option for additional variables. Optional."
   echo -e "  --skip-consul-config\tIf this flag is set, don't generate a Consul configuration file. Optional. Default is false."
   echo -e "  --recursor\tThis flag provides address of upstream DNS server that is used to recursively resolve queries if they are not inside the service domain for Consul. Repeat this option for additional variables. Optional."
@@ -231,6 +233,8 @@ function generate_consul_config {
   local -r redundancy_zone_tag="${18}"
   local -r disable_upgrade_migration="${19}"
   local -r upgrade_version_tag=${20}
+  local -r enable_connect="${21}"
+  local -r enable_grpc="${22}"
   local -r config_path="$config_dir/$CONSUL_CONFIG_FILE"
 
   shift 20
@@ -311,6 +315,28 @@ EOF
 )
   fi
 
+  local connect_configuration=""
+  if [[ "$enable_connect" == "true" ]]; then
+    log_info "Enabling Consul Connect"
+    connect_configuration=$(cat <<EOF
+"connect": {
+  "enabled": true
+}
+EOF
+)
+  fi
+
+  local grpc_configuration=""
+  if [[ "$enable_grpc" == "true" ]]; then
+    log_info "Enabling grpc"
+    grpc_configuration=$(cat <<EOF
+"ports": {
+  "grpc": 8502
+}
+EOF
+)
+  fi
+
   log_info "Creating default Consul configuration"
   local default_config_json
   default_config_json=$(cat <<EOF
@@ -327,6 +353,8 @@ EOF
   $gossip_encryption_configuration
   $rpc_encryption_configuration
   $autopilot_configuration
+  $connect_configuration,
+  $grpc_configuration,
   "ui": $ui
 }
 EOF
@@ -431,6 +459,8 @@ function run {
   local ca_path=""
   local cert_file_path=""
   local key_file_path=""
+  local enable_connect="false"
+  local enable_grpc="false"
   local environment=()
   local skip_consul_config="false"
   local recursors=()
@@ -559,6 +589,12 @@ function run {
         key_file_path="$2"
         shift
         ;;
+      --enable-connect)
+        enable_connect="true"
+        ;;
+      --enable-grpc)
+        enable_grpc="true"
+        ;;
       --environment)
         assert_not_empty "$key" "$2"
         environment+=("$2")
@@ -650,6 +686,8 @@ function run {
       "$redundancy_zone_tag" \
       "$disable_upgrade_migration" \
       "$upgrade_version_tag" \
+      "$enable_connect" \
+      "$enable_grpc" \
       "${recursors[@]}"
   fi
 
