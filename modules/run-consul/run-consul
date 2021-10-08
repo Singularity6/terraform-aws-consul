@@ -52,6 +52,7 @@ function print_usage {
   echo -e "  --verify-server-hostname\tWhen passed in, enable server hostname verification as part of RPC encryption. Each server in Consul should get their own certificate that contains SERVERNAME.DATACENTERNAME.consul in the hostname or SAN. This prevents an authenticated agent from being converted into a server that streams all data, bypassing ACLs."
   echo -e "  --enable-connect\tWhen passed in, turns on Consul Connect."
   echo -e "  --enable-grpc\tWhen passed in, turns on gRPC mode, which as of right now is only used to expose XDS to Envoy Proxies. This is hard set to the default port of 8502 by convention."
+  echo -e "  --enable-local-link\tWhen passed in, binds client addr for consul to 169.254.1.1, instead of 0.0.0.0."
   echo -e "  --environment\t\tA single environment variable in the key/value pair form 'KEY=\"val\"' to pass to Consul as environment variable when starting it up. Repeat this option for additional variables. Optional."
   echo -e "  --skip-consul-config\tIf this flag is set, don't generate a Consul configuration file. Optional. Default is false."
   echo -e "  --recursor\tThis flag provides address of upstream DNS server that is used to recursively resolve queries if they are not inside the service domain for Consul. Repeat this option for additional variables. Optional."
@@ -235,9 +236,10 @@ function generate_consul_config {
   local -r upgrade_version_tag=${20}
   local -r enable_connect="${21}"
   local -r enable_grpc="${22}"
+  local -r enable_local_link="${23}"
   local -r config_path="$config_dir/$CONSUL_CONFIG_FILE"
 
-  shift 22
+  shift 23
   local -r recursors=("$@")
 
   local instance_id=""
@@ -337,6 +339,12 @@ EOF
 )
   fi
 
+  local client_bind_addr="0.0.0.0"
+  if [[ "$enable_local_link" == "true" ]]; then
+    log_info "Enabling local link"
+    client_bind_addr="169.254.1.1"
+  fi
+
   log_info "Creating default Consul configuration"
   local default_config_json
   default_config_json=$(cat <<EOF
@@ -344,7 +352,7 @@ EOF
   "advertise_addr": "$instance_ip_address",
   "bind_addr": "$instance_ip_address",
   $bootstrap_expect
-  "client_addr": "0.0.0.0",
+  "client_addr": "$client_bind_addr",
   "datacenter": "$datacenter",
   "node_name": "$instance_id",
   $recursors_config
@@ -461,6 +469,7 @@ function run {
   local key_file_path=""
   local enable_connect="false"
   local enable_grpc="false"
+  local enable_local_link="false"
   local environment=()
   local skip_consul_config="false"
   local recursors=()
@@ -595,6 +604,9 @@ function run {
       --enable-grpc)
         enable_grpc="true"
         ;;
+      --enable-local_link)
+        enable_local_link="true"
+        ;;
       --environment)
         assert_not_empty "$key" "$2"
         environment+=("$2")
@@ -688,6 +700,7 @@ function run {
       "$upgrade_version_tag" \
       "$enable_connect" \
       "$enable_grpc" \
+      "$enable_local_link" \
       "${recursors[@]}"
   fi
 
