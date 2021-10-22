@@ -604,7 +604,7 @@ function run {
       --enable-grpc)
         enable_grpc="true"
         ;;
-      --enable-local_link)
+      --enable-local-link)
         enable_local_link="true"
         ;;
       --environment)
