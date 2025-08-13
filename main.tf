@@ -72,7 +72,12 @@ module "consul_servers" {
   cluster_tag_value = var.cluster_name
 
   ami_id    = var.ami_id == null ? data.aws_ami.consul.image_id : var.ami_id
-  user_data = data.template_file.user_data_server.rendered
+  # deprecated: user_data = data.template_file.user_data_server.rendered
+  user_data = templatefile("${path.module}/examples/root-example/user-data-server.sh", {
+    cluster_tag_key   = var.cluster_tag_key
+    cluster_tag_value = var.cluster_name
+  })
+
 
   vpc_id     = data.aws_vpc.default.id
   subnet_ids = data.aws_subnet_ids.default.ids
@@ -101,14 +106,14 @@ module "consul_servers" {
 # This script will configure and start Consul
 # ---------------------------------------------------------------------------------------------------------------------
 
-data "template_file" "user_data_server" {
-  template = file("${path.module}/examples/root-example/user-data-server.sh")
+#data "template_file" "user_data_server" {
+#  template = file("${path.module}/examples/root-example/user-data-server.sh")
 
-  vars = {
-    cluster_tag_key   = var.cluster_tag_key
-    cluster_tag_value = var.cluster_name
-  }
-}
+#  vars = {
+#    cluster_tag_key   = var.cluster_tag_key
+#    cluster_tag_value = var.cluster_name
+#  }
+#}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DEPLOY THE CONSUL CLIENT NODES
@@ -132,7 +137,12 @@ module "consul_clients" {
   cluster_tag_value = var.cluster_name
 
   ami_id    = var.ami_id == null ? data.aws_ami.consul.image_id : var.ami_id
-  user_data = data.template_file.user_data_client.rendered
+  # deprecated: user_data = data.template_file.user_data_client.rendered
+  user_data = templatefile("${path.module}/examples/root-example/user-data-client.sh", {
+    cluster_tag_key   = var.cluster_tag_key
+    cluster_tag_value = var.cluster_name
+  })
+
 
   vpc_id     = data.aws_vpc.default.id
   subnet_ids = data.aws_subnet_ids.default.ids
@@ -150,14 +160,14 @@ module "consul_clients" {
 # This script will configure and start Consul
 # ---------------------------------------------------------------------------------------------------------------------
 
-data "template_file" "user_data_client" {
-  template = file("${path.module}/examples/root-example/user-data-client.sh")
+#data "template_file" "user_data_client" {
+#  template = file("${path.module}/examples/root-example/user-data-client.sh")
 
-  vars = {
-    cluster_tag_key   = var.cluster_tag_key
-    cluster_tag_value = var.cluster_name
-  }
-}
+#  vars = {
+#    cluster_tag_key   = var.cluster_tag_key
+#    cluster_tag_value = var.cluster_name
+#  }
+#}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DEPLOY CONSUL IN THE DEFAULT VPC AND SUBNETS
